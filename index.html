@@ -133,7 +133,11 @@
     </form>
   </div>
 
-  <script>
+  
+   <script>
+    // 🔑 ၁။ မိမိ၏ Ngrok Backend API URL ကို ဒီနေရာမှာ ထည့်ပါ
+    const BACKEND_URL = "https://imperfect-staple-barbed.ngrok-free.dev";
+
     const settingsKeys = ['videoRatio', 'voiceMode', 'voiceSpeed', 'freezeFrame', 'zoomEffect', 'subFont', 'blurTool', 'logoToggle', 'captionToggle', 'thumbToggle', 'splitMode'];
     let abortController = null;
 
@@ -167,10 +171,18 @@
       text.innerText = `${percent}%`;
     }
 
-    // Start Generation Workflow
-    function startProcessing() {
+    // 🚀 ၂။ Colab Backend သို့ Video တိုက်ရိုက် ပို့ဆောင်ရေး Workflow
+    async function startProcessing() {
       const fileInput = document.getElementById('videoFile');
       if (!fileInput.files.length) return alert('Video Upload တင်ပေးပါ!');
+
+      // API Key တောင်းဆိုခြင်း (သို့မဟုတ် LocalStorage မှ ယူခြင်း)
+      let apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        apiKey = prompt("ကျေးဇူးပြု၍ သင့် Google Gemini API Key ကို ထည့်ပါ:");
+        if (!apiKey) return alert("API Key ထည့်သွင်းရန် လိုအပ်ပါသည်။");
+        localStorage.setItem('gemini_api_key', apiKey);
+      }
 
       document.getElementById('generateBtn').classList.add('hidden');
       document.getElementById('progressContainer').classList.remove('hidden');
@@ -178,8 +190,58 @@
 
       abortController = new AbortController();
 
-      // UI Process Simulation (Connect to Python Backend API via SSE/Fetch)
-      simulateProgress();
+      try {
+        // Stage 1: Uploading Video
+        document.getElementById('stageText').innerText = "Uploading Video to Colab...";
+        setProgress(20);
+
+        const formData = new FormData();
+        formData.append("video", fileInput.files[0]);
+        formData.append("api_key", apiKey);
+
+        // Stage 2: Processing AI & Video Engine
+        document.getElementById('stageText').innerText = "Gemini & FFmpeg Processing...";
+        setProgress(50);
+
+        const response = await fetch(`${BACKEND_URL}/api/process-video`, {
+          method: "POST",
+          body: formData,
+          signal: abortController.signal
+        });
+
+        if (!response.ok) throw new Error("Server တုံ့ပြန်မှု မရရှိပါ သို့မဟုတ် Error တက်နေပါသည်။");
+
+        // Stage 3: Rendering & Downloading
+        document.getElementById('stageText').innerText = "Rendering Final Video...";
+        setProgress(85);
+
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        
+        // Final State: Download လင့်ခ် ထုတ်ပေးခြင်း
+        setProgress(100);
+        document.getElementById('stageText').innerText = "Completed!";
+
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = "recap_video.mp4";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(() => {
+          alert("Video Recap Processing အောင်မြင်စွာ ပြီးဆုံးပါပြီ! Video ကို Download ဆွဲလိုက်ပါပြီ။");
+          resetUI();
+        }, 800);
+
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log('Processing aborted');
+        } else {
+          alert("Error: " + error.message);
+          resetUI();
+        }
+      }
     }
 
     // Cancel Processing
@@ -195,32 +257,7 @@
       document.getElementById('progressContainer').classList.remove('flex');
       setProgress(0);
     }
-
-    // Simulated Workflow Stages (With Auto-Retry Logic)
-    async function simulateProgress() {
-      const stages = [
-        { progress: 15, text: "Scene Analysing..." },
-        { progress: 35, text: "Extracting Subtitle & Transcript..." },
-        { progress: 55, text: "Generating Burmese Voiceover..." },
-        { progress: 75, text: "Applying Video Effects & Filters..." },
-        { progress: 90, text: "Rendering Final Video..." },
-        { progress: 100, text: "Completed!" }
-      ];
-
-      for (let stage of stages) {
-        if (abortController.signal.aborted) break;
-        document.getElementById('stageText').innerText = stage.text;
-        setProgress(stage.progress);
-        await new Promise(r => setTimeout(r, 2000)); // Delay
-      }
-
-      if (!abortController.signal.aborted) {
-        setTimeout(() => {
-          alert("Video Recap Processing အောင်မြင်စွာ ပြီးဆုံးပါပြီ!");
-          resetUI();
-        }, 500);
-      }
-    }
   </script>
+
 </body>
 </html>
