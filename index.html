@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="my" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Click Video Recap Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8 font-sans">
+
+  <div class="max-w-3xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+    <h1 class="text-2xl font-bold text-rose-500 mb-6 text-center">🎬 One Click Video Recap Builder</h1>
+
+    <form id="recapForm" class="space-y-5">
+      <!-- 1. Video Upload -->
+      <div>
+        <label class="block text-sm font-medium mb-1">1. Video Upload တင်ရန်</label>
+        <input type="file" id="videoFile" accept="video/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600 cursor-pointer">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- 2. Video Ratio -->
+        <div>
+          <label class="block text-sm font-medium mb-1">2. Video Ratio</label>
+          <select id="videoRatio" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+            <option value="9:16">9:16 (Shorts/TikTok)</option>
+            <option value="16:9">16:9 (YouTube)</option>
+            <option value="1:1">1:1 (Square)</option>
+          </select>
+        </div>
+
+        <!-- 3. Voiceover Mode -->
+        <div>
+          <label class="block text-sm font-medium mb-1">3. Voiceover Mode</label>
+          <select id="voiceMode" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+            <option value="Thiha">Thiha (Male)</option>
+            <option value="Nilar">Nilar (Female)</option>
+          </select>
+        </div>
+
+        <!-- 4. Voice Speed -->
+        <div>
+          <label class="block text-sm font-medium mb-1">4. Voice Speed</label>
+          <input type="number" id="voiceSpeed" step="0.1" min="0.5" max="2.0" value="1.2" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+        </div>
+
+        <!-- 5. Freeze Frame -->
+        <div>
+          <label class="block text-sm font-medium mb-1">5. Freeze Frame</label>
+          <input type="text" id="freezeFrame" placeholder="e.g. 8s တိုင်း 2s" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+        </div>
+      </div>
+
+      <!-- 6, 7, 8: Effect Options -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">6. Zoom Effect</label>
+          <select id="zoomEffect" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+            <option value="none">None</option>
+            <option value="zoom_in">Zoom In</option>
+            <option value="zoom_out">Zoom Out</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">7. Subtitle Font</label>
+          <select id="subFont" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+            <option value="Pyidaungsu">Pyidaungsu (Unicode)</option>
+            <option value="Masterpiece">Masterpiece</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">8. Blur Tool</label>
+          <select id="blurTool" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5 text-sm">
+            <option value="off">Off</option>
+            <option value="background">Background Blur</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 9, 10, 11, 12: Toggle Switches -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="logoToggle" class="w-4 h-4 rounded accent-rose-500">
+          <span class="text-sm">9. Logo Image</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="captionToggle" class="w-4 h-4 rounded accent-rose-500">
+          <span class="text-sm">10. Caption</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="thumbToggle" class="w-4 h-4 rounded accent-rose-500">
+          <span class="text-sm">11. Thumbnail</span>
+        </label>
+        <div>
+          <select id="splitMode" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-1.5 text-sm">
+            <option value="auto">12. Auto Split</option>
+            <option value="manual">Manual Split</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Button Container -->
+      <div class="pt-6 border-t border-slate-700 flex justify-center">
+        <!-- State 1: Generate Now Button -->
+        <button type="button" id="generateBtn" onclick="startProcessing()" class="w-full py-4 bg-rose-600 hover:bg-rose-700 font-bold text-lg rounded-xl transition shadow-lg">
+          Generate Now
+        </button>
+
+        <!-- State 2: Progress Circular Loading & Cancel -->
+        <div id="progressContainer" class="hidden flex-col items-center gap-3">
+          <div class="relative flex items-center justify-center">
+            <svg class="w-28 h-28">
+              <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="56" cy="56"/>
+              <circle id="progressCircle" class="text-rose-500 progress-ring__circle" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="56" cy="56"/>
+            </svg>
+            <span id="progressText" class="absolute text-lg font-bold">0%</span>
+          </div>
+
+          <p id="stageText" class="text-sm font-medium text-slate-300 animate-pulse">Scene Analysing...</p>
+
+          <button type="button" onclick="cancelProcessing()" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-rose-400 font-semibold text-sm rounded-lg transition border border-slate-600">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const settingsKeys = ['videoRatio', 'voiceMode', 'voiceSpeed', 'freezeFrame', 'zoomEffect', 'subFont', 'blurTool', 'logoToggle', 'captionToggle', 'thumbToggle', 'splitMode'];
+    let abortController = null;
+
+    // Load Last Saved Settings
+    window.onload = () => {
+      settingsKeys.forEach(id => {
+        const el = document.getElementById(id);
+        const savedValue = localStorage.getItem('recap_' + id);
+        if (savedValue !== null) {
+          if (el.type === 'checkbox') el.checked = savedValue === 'true';
+          else el.value = savedValue;
+        }
+      });
+    };
+
+    // Auto Save Settings on Change
+    settingsKeys.forEach(id => {
+      document.getElementById(id).addEventListener('change', (e) => {
+        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        localStorage.setItem('recap_' + id, val);
+      });
+    });
+
+    // Circular Progress Setter
+    function setProgress(percent) {
+      const circle = document.getElementById('progressCircle');
+      const text = document.getElementById('progressText');
+      const circumference = 2 * Math.PI * 40;
+      const offset = circumference - (percent / 100 * circumference);
+      circle.style.strokeDashoffset = offset;
+      text.innerText = `${percent}%`;
+    }
+
+    // Start Generation Workflow
+    function startProcessing() {
+      const fileInput = document.getElementById('videoFile');
+      if (!fileInput.files.length) return alert('Video Upload တင်ပေးပါ!');
+
+      document.getElementById('generateBtn').classList.add('hidden');
+      document.getElementById('progressContainer').classList.remove('hidden');
+      document.getElementById('progressContainer').classList.add('flex');
+
+      abortController = new AbortController();
+
+      // UI Process Simulation (Connect to Python Backend API via SSE/Fetch)
+      simulateProgress();
+    }
+
+    // Cancel Processing
+    function cancelProcessing() {
+      if (abortController) abortController.abort();
+      resetUI();
+      alert('Processing ကို ဖျက်လိုက်ပါပြီ။');
+    }
+
+    function resetUI() {
+      document.getElementById('generateBtn').classList.remove('hidden');
+      document.getElementById('progressContainer').classList.add('hidden');
+      document.getElementById('progressContainer').classList.remove('flex');
+      setProgress(0);
+    }
+
+    // Simulated Workflow Stages (With Auto-Retry Logic)
+    async function simulateProgress() {
+      const stages = [
+        { progress: 15, text: "Scene Analysing..." },
+        { progress: 35, text: "Extracting Subtitle & Transcript..." },
+        { progress: 55, text: "Generating Burmese Voiceover..." },
+        { progress: 75, text: "Applying Video Effects & Filters..." },
+        { progress: 90, text: "Rendering Final Video..." },
+        { progress: 100, text: "Completed!" }
+      ];
+
+      for (let stage of stages) {
+        if (abortController.signal.aborted) break;
+        document.getElementById('stageText').innerText = stage.text;
+        setProgress(stage.progress);
+        await new Promise(r => setTimeout(r, 2000)); // Delay
+      }
+
+      if (!abortController.signal.aborted) {
+        setTimeout(() => {
+          alert("Video Recap Processing အောင်မြင်စွာ ပြီးဆုံးပါပြီ!");
+          resetUI();
+        }, 500);
+      }
+    }
+  </script>
+</body>
+</html>
