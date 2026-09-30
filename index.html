@@ -16,7 +16,14 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8 font-sans">
 
   <div class="max-w-3xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl">
-    <h1 class="text-2xl font-bold text-rose-500 mb-6 text-center">🎬 One Click Video Recap Builder</h1>
+    
+    <!-- Top Header & Reset Key Button -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-rose-500">🎬 One Click Video Recap Builder</h1>
+      <button onclick="resetApiKey()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 py-1.5 px-3 rounded-lg border border-slate-600 transition">
+        🔑 Change API Key
+      </button>
+    </div>
 
     <form id="recapForm" class="space-y-5">
       <!-- 1. Video Upload -->
@@ -134,9 +141,9 @@
   </div>
 
   <script>
-    // 🔑 ၁။ မိမိ၏ Ngrok Backend API URL ကို အောက်ပါအတိုင်း သတ်မှတ်ထားပါသည်
-    const rawUrl = "https://imperfect-staple-barbed.ngrok-free.dev/";
-    const BACKEND_URL = rawUrl.replace(/\/+$/, ''); // URL နောက်က / များကို သန့်စင်ပေးခြင်း
+    // 🔑 Ngrok Backend URL
+    const rawUrl = "https://imperfect-staple-barbed.ngrok-free.dev";
+    const BACKEND_URL = rawUrl.replace(/\/+$/, '');
 
     const settingsKeys = ['videoRatio', 'voiceMode', 'voiceSpeed', 'freezeFrame', 'zoomEffect', 'subFont', 'blurTool', 'logoToggle', 'captionToggle', 'thumbToggle', 'splitMode'];
     let abortController = null;
@@ -161,6 +168,16 @@
       });
     });
 
+    // API Key Reset Function
+    function resetApiKey() {
+      localStorage.removeItem('gemini_api_key');
+      const newKey = prompt("ကျေးဇူးပြု၍ Google Gemini API Key အသစ် ထည့်သွင်းပါ:");
+      if (newKey) {
+        localStorage.setItem('gemini_api_key', newKey.trim());
+        alert("API Key အသစ် မှတ်သားလိုက်ပါပြီ!");
+      }
+    }
+
     // Circular Progress Setter
     function setProgress(percent) {
       const circle = document.getElementById('progressCircle');
@@ -171,17 +188,17 @@
       text.innerText = `${percent}%`;
     }
 
-    // 🚀 ၂။ Colab Backend သို့ Video တိုက်ရိုက် ပို့ဆောင်ရေး Workflow
+    // 🚀 Colab Backend Workflow
     async function startProcessing() {
       const fileInput = document.getElementById('videoFile');
       if (!fileInput.files.length) return alert('Video Upload တင်ပေးပါ!');
 
-      // API Key တောင်းဆိုခြင်း (သို့မဟုတ် LocalStorage မှ ယူခြင်း)
+      // API Key စစ်ဆေးခြင်း
       let apiKey = localStorage.getItem('gemini_api_key');
       if (!apiKey) {
         apiKey = prompt("ကျေးဇူးပြု၍ သင့် Google Gemini API Key ကို ထည့်ပါ:");
         if (!apiKey) return alert("API Key ထည့်သွင်းရန် လိုအပ်ပါသည်။");
-        localStorage.setItem('gemini_api_key', apiKey);
+        localStorage.setItem('gemini_api_key', apiKey.trim());
       }
 
       document.getElementById('generateBtn').classList.add('hidden');
@@ -191,19 +208,16 @@
       abortController = new AbortController();
 
       try {
-        // Stage 1: Uploading Video
         document.getElementById('stageText').innerText = "Uploading Video to Colab...";
         setProgress(20);
 
         const formData = new FormData();
         formData.append("video", fileInput.files[0]);
-        formData.append("api_key", apiKey);
+        formData.append("api_key", apiKey.trim());
 
-        // Stage 2: Processing AI & Video Engine
         document.getElementById('stageText').innerText = "Gemini & FFmpeg Processing...";
         setProgress(50);
 
-        // Fetch With Ngrok Warning Bypass Header
         const response = await fetch(`${BACKEND_URL}/api/process-video`, {
           method: "POST",
           headers: {
@@ -213,16 +227,14 @@
           signal: abortController.signal
         });
 
-        if (!response.ok) throw new Error("Server တုံ့ပြန်မှု မရရှိပါ သို့မဟုတ် Error တက်နေပါသည်။ (Status: " + response.status + ")");
+        if (!response.ok) throw new Error("Server Error: (Status " + response.status + ")");
 
-        // Stage 3: Rendering & Downloading
         document.getElementById('stageText').innerText = "Rendering Final Video...";
         setProgress(85);
 
         const blob = await response.blob();
         const downloadUrl = URL.createObjectURL(blob);
         
-        // Final State: Auto Download
         setProgress(100);
         document.getElementById('stageText').innerText = "Completed!";
 
@@ -234,7 +246,7 @@
         a.remove();
 
         setTimeout(() => {
-          alert("Video Recap Processing အောင်မြင်စွာ ပြီးဆုံးပါပြီ! Video ကို Download ဆွဲလိုက်ပါပြီ။");
+          alert("Video Recap Processing အောင်မြင်စွာ ပြီးဆုံးပါပြီ!");
           resetUI();
         }, 800);
 
@@ -248,7 +260,6 @@
       }
     }
 
-    // Cancel Processing
     function cancelProcessing() {
       if (abortController) abortController.abort();
       resetUI();
